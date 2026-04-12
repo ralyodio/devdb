@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Build
+        run: |
+          GOOS=linux  GOARCH=amd64 go build -o devdb-linux-amd64 .
+          GOOS=linux  GOARCH=arm64 go build -o devdb-linux-arm64 .
+          GOOS=darwin GOARCH=amd64 go build -o devdb-darwin-amd64 .
+          GOOS=darwin GOARCH=arm64 go build -o devdb-darwin-arm64 .
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            devdb-linux-amd64
+            devdb-linux-arm64
+            devdb-darwin-amd64
+            devdb-darwin-arm64
