@@ -48,3 +48,24 @@ func cmdLs() {
 		os.Exit(1)
 	}
 }
+
+func cmdRm(args []string) {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: devdb rm <name>")
+		os.Exit(1)
+	}
+	name := args[0]
+
+	cli, err := newClient()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "could not connect to container runtime: %s\n", err)
+		os.Exit(1)
+	}
+	defer cli.Close()
+
+	ctx := context.Background()
+	if err := killExisting(ctx, cli, name, 0); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		os.Exit(1)
+	}
+}
