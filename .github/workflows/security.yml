@@ -1,0 +1,46 @@
+name: Security
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Rules change more often than this repository does, so a weekly run
+    # catches a new rule against unchanged code.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: ThreatCrush
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      # Pinned rather than floating: a scanner that updates itself in CI is a
+      # third party with write access to the build.
+      - name: Scan
+        run: >
+          npx --yes @profullstack/threatcrush@0.11.9 scan .
+          --format sarif
+          --output threatcrush.sarif
+          --fail-on critical,high
+
+      # Only on push and schedule. A pull request from a fork gets a read-only
+      # token, so uploading there would fail for reasons unrelated to the code;
+      # the --fail-on gate above is what reports on a pull request.
+      - name: Upload SARIF
+        if: always() && github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: threatcrush.sarif
+          category: threatcrush
